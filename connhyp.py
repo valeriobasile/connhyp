@@ -39,9 +39,9 @@ with open(corpus2) as f:
 # appending the labels to the target words in the corpora 
 sentences = []
 for sentence in tqdm(sentences1):
-    sentences.append(["{0}_{1}".format(word, label1) if (word in targetwords and random() < 0.66) else word for word in sentence])
+    sentences.append(["{0}_GEN".format(word) if (word in targetwords and random() < 0.66) else word for word in sentence])
 for sentence in tqdm(sentences2):
-    sentences.append(["{0}_{1}".format(word, label2) if (word in targetwords and random() < 0.66) else word for word in sentence])
+    sentences.append(["{0}_TOP".format(word) if (word in targetwords and random() < 0.66) else word for word in sentence])
 
 # Word3vec
 log.info("w2v fit")
@@ -65,19 +65,18 @@ with open("seed_{0}.txt".format(label2)) as f:
             y.append(label2)
 X = np.array(X)
 y = np.array(y)
-classifier = SVC(kernel='linear')
+classifier = SVC(kernel='linear', verbose=True)
 classifier.fit(X,y)
 
 # prediction
 for targetword in targetwords:
-    if not ("{0}_{1}".format(targetword, label1) in w2v.wv and "{0}_{1}".format(targetword, label2) in w2v.wv):
+    if not ("{0}_GEN".format(targetword) in w2v.wv and "{0}_TOP".format(targetword) in w2v.wv):
         continue
-    target1 = w2v.wv["{0}_{1}".format(targetword, label1)]
-    target2 = w2v.wv["{0}_{1}".format(targetword, label2)]
+    target1 = w2v.wv["{0}_GEN".format(targetword)]
+    target2 = w2v.wv["{0}_TOP".format(targetword)]
     X_test = np.array([target1, target2])
     norm = np.linalg.norm(classifier.coef_)
-    d1, d2 = list(classifier.decision_function(X_test))
-    print ("{0}\t{1}\t{2}".format(targetword, d1, d2).replace(".", ","))
-
+    d1, d2 = list(classifier.decision_function(X_test)/norm)
+    print ("{0}\t{1}\t{2}\t{3}".format(targetword, d1, d2, d2-d1).replace(".", ","))
 
 
